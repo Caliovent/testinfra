@@ -15,5 +15,6 @@ resource "azurerm_storage_account" "fgtstorageaccount" {
 
   tags = {
     environment = "Terraform Single FortiGate"
+    owner       = "vschmitt"
   }
 }

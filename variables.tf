@@ -11,7 +11,7 @@ variable "location" {
 
 variable "resource_group_name" {
   type    = string
-  default = "terraform-sandwich-fgt"
+  default = "vschmitt-terraform-sandwich-fgt"
 }
 
 variable "size" {
@@ -81,8 +81,8 @@ variable "backend_size" {
 }
 
 variable "management_ip" {
-  type    = string
-  default = "0.0.0.0/0"
+  type        = string
+  default     = "0.0.0.0/0"
   description = "The management IP address for accessing the FortiGate VMs."
 }
 

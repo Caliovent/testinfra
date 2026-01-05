@@ -39,15 +39,18 @@ resource "azurerm_cdn_frontdoor_origin_group" "my_origin_group" {
 }
 
 resource "azurerm_cdn_frontdoor_origin" "my_app_origin" {
-  name                           = local.front_door_origin_name
-  cdn_frontdoor_origin_group_id  = azurerm_cdn_frontdoor_origin_group.my_origin_group.id
-  enabled                        = true
+  name                          = local.front_door_origin_name
+  cdn_frontdoor_origin_group_id = azurerm_cdn_frontdoor_origin_group.my_origin_group.id
+  enabled                       = true
+
+  host_name  = azurerm_public_ip.elb_pip.ip_address
+  http_port  = 80
+  https_port = 443
+  priority   = 1
+  weight     = 1000
+
+  // Pas de vérification du certificat backend (car IP)
   certificate_name_check_enabled = false
-  host_name                      = azurerm_public_ip.elb_pip.ip_address
-  http_port                      = 80
-  https_port                     = 443
-  priority                       = 1
-  weight                         = 1000
 }
 
 resource "azurerm_cdn_frontdoor_route" "my_route" {
@@ -55,9 +58,10 @@ resource "azurerm_cdn_frontdoor_route" "my_route" {
   cdn_frontdoor_endpoint_id     = azurerm_cdn_frontdoor_endpoint.my_endpoint.id
   cdn_frontdoor_origin_group_id = azurerm_cdn_frontdoor_origin_group.my_origin_group.id
   cdn_frontdoor_origin_ids      = [azurerm_cdn_frontdoor_origin.my_app_origin.id]
-  supported_protocols           = ["Http", "Https"]
-  patterns_to_match             = ["/*"]
-  forwarding_protocol           = "MatchRequest"
-  link_to_default_domain        = true
-  https_redirect_enabled        = true
+
+  supported_protocols    = ["Http", "Https"]
+  patterns_to_match      = ["/*"]
+  forwarding_protocol    = "MatchRequest"
+  link_to_default_domain = true
+  https_redirect_enabled = true
 }
