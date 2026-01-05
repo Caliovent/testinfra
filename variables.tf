@@ -96,3 +96,13 @@ variable "license2" {
   type    = string
   default = "licenseB.txt"
 }
+
+variable "backend_ssl_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "backend_ssl_crt" {
+  type      = string
+  sensitive = true
+}
