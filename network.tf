@@ -121,6 +121,18 @@ resource "azurerm_network_security_group" "privatenetworknsg" {
 // --- INTERFACES (Count = 2 for FGT A and FGT B) ---
 
 // Port 1 (Public / Management)
+resource "azurerm_public_ip" "FGT-VIP-PIP" {
+  count               = 2
+  name                = "FGT-VIP-PIP"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.myterraformgroup.name
+  sku                 = "Standard"
+  allocation_method   = "Static"
+  tags = {
+    environment = "Terraform Single FortiGate"
+  }
+}
+
 resource "azurerm_network_interface" "fgtport1" {
   count               = 2
   name                = "fgt-instance-${count.index + 1}-port1"
@@ -131,9 +143,17 @@ resource "azurerm_network_interface" "fgtport1" {
     name                          = "ipconfig1"
     subnet_id                     = azurerm_subnet.publicsubnet.id
     private_ip_address_allocation = "Dynamic"
+    primary                       = true
 
     // We need a public IP for management of each unit independently
     public_ip_address_id = azurerm_public_ip.fgt_mgmt_pip[count.index].id
+  }
+
+  ip_configuration {
+    name                          = "ipconfig2"
+    subnet_id                     = azurerm_subnet.publicsubnet.id
+    private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = azurerm_public_ip.FGT-VIP-PIP[count.index].id
   }
 }
 
