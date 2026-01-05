@@ -51,6 +51,7 @@ resource "azurerm_virtual_machine" "fgtvm" {
       type         = var.license_type
       license_file = count.index == 0 ? var.license : var.license2
       hostname     = count.index == 0 ? "FGT-A" : "FGT-B"
+      vip_ip       = azurerm_public_ip.FGT-VIP-PIP[count.index].ip_address
     })
   }
 
