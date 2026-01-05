@@ -1,6 +1,9 @@
 # Configuration Cloud-Init pour installer Nginx et forcer TLS 1.2
 locals {
-  custom_data_script = templatefile("${path.module}/webserver.conf", {})
+  custom_data_script = templatefile("${path.module}/webserver.conf", {
+    ssl_key = var.backend_ssl_key
+    ssl_crt = var.backend_ssl_crt
+  })
 }
 
 resource "azurerm_network_interface" "backend_nic" {
