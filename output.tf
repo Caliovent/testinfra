@@ -7,10 +7,10 @@ output "LoadBalancer_Public_IP" {
   description = "The IP address Front Door points to (ELB Frontend)"
 }
 
-output "Azure_Front_Door_Endpoint" {
-  value       = "https://${azurerm_cdn_frontdoor_endpoint.my_endpoint.host_name}"
-  description = "Use this URL to test the full flow"
-}
+# output "Azure_Front_Door_Endpoint" {
+#   value       = "https://${azurerm_cdn_frontdoor_endpoint.my_endpoint.host_name}"
+#   description = "Use this URL to test the full flow"
+# }
 
 output "Backend_Server_Private_IP" {
   value       = azurerm_network_interface.backend_nic.private_ip_address

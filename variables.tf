@@ -75,6 +75,17 @@ variable "bootstrap-fgtvm" {
   default = "fgtvm.conf"
 }
 
+variable "backend_size" {
+  type    = string
+  default = "Standard_B1s"
+}
+
+variable "management_ip" {
+  type    = string
+  default = "0.0.0.0/0"
+  description = "The management IP address for accessing the FortiGate VMs."
+}
+
 // License files for FGT A and FGT B
 variable "license" {
   type    = string

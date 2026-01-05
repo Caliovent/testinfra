@@ -76,14 +76,26 @@ resource "azurerm_network_security_group" "publicnetworknsg" {
   resource_group_name = azurerm_resource_group.myterraformgroup.name
 
   security_rule {
-    name                       = "AllowAllInbound"
-    priority                   = 1001
+    name                       = "AllowFrontDoor"
+    priority                   = 100
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "*"
+    protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "*"
-    source_address_prefix      = "*"
+    source_address_prefix      = "AzureFrontDoor.Backend"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "AllowManagement"
+    priority                   = 200
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_ranges    = ["22", "443", "8443"]
+    source_address_prefix      = var.management_ip
     destination_address_prefix = "*"
   }
 }
@@ -174,4 +186,49 @@ resource "azurerm_network_interface_backend_address_pool_association" "fgt_to_el
   network_interface_id    = azurerm_network_interface.fgtport1[count.index].id
   ip_configuration_name   = "ipconfig1"
   backend_address_pool_id = azurerm_lb_backend_address_pool.elb_backend.id
+}
+
+// --- AZURE INTERNAL LOAD BALANCER (For Return Traffic) ---
+
+resource "azurerm_lb" "ilb" {
+  name                = "Internal-LB"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.myterraformgroup.name
+  sku                 = "Standard"
+
+  frontend_ip_configuration {
+    name                          = "LoadBalancerFrontEnd"
+    subnet_id                     = azurerm_subnet.privatesubnet.id
+    private_ip_address_allocation = "Dynamic"
+  }
+}
+
+resource "azurerm_lb_backend_address_pool" "ilb_backend" {
+  loadbalancer_id = azurerm_lb.ilb.id
+  name            = "FortiGateBackendPool-Internal"
+}
+
+resource "azurerm_lb_probe" "ilb_probe" {
+  loadbalancer_id = azurerm_lb.ilb.id
+  name            = "tcp-probe-8008-internal"
+  port            = 8008
+  protocol        = "Tcp"
+}
+
+resource "azurerm_lb_rule" "ilb_rule" {
+  loadbalancer_id                = azurerm_lb.ilb.id
+  name                           = "ILBRule"
+  protocol                       = "All"
+  frontend_port                  = 0
+  backend_port                   = 0
+  frontend_ip_configuration_name = "LoadBalancerFrontEnd"
+  probe_id                       = azurerm_lb_probe.ilb_probe.id
+  backend_address_pool_ids       = [azurerm_lb_backend_address_pool.ilb_backend.id]
+}
+
+resource "azurerm_network_interface_backend_address_pool_association" "fgt_to_ilb" {
+  count                   = 2
+  network_interface_id    = azurerm_network_interface.fgtport2[count.index].id
+  ip_configuration_name   = "ipconfig1"
+  backend_address_pool_id = azurerm_lb_backend_address_pool.ilb_backend.id
 }
