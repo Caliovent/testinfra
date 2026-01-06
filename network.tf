@@ -162,8 +162,8 @@ resource "azurerm_network_interface" "fgtport2" {
   ip_configuration {
     name                          = "ipconfig1"
     subnet_id                     = azurerm_subnet.privatesubnet.id
-    private_ip_address_allocation = "Dynamic"
-
+    private_ip_address_allocation = count.index == 0 ? "Static" : "Dynamic"
+    private_ip_address            = count.index == 0 ? "10.1.1.7" : null
   }
 }
 
