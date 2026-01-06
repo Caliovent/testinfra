@@ -67,9 +67,7 @@ resource "azurerm_lb_rule" "lbnatrule" {
   frontend_ip_configuration_name = "LoadBalancerFrontEnd"
   probe_id                       = azurerm_lb_probe.elb_probe.id
   backend_address_pool_ids       = [azurerm_lb_backend_address_pool.elb_backend.id]
-
-  # CRITICAL: Enable Floating IP so packets arrive with Destination IP = Public IP
-  enable_floating_ip = true
+  floating_ip_enabled            = true
 }
 
 // --- NETWORK SECURITY GROUPS ---
