@@ -33,7 +33,7 @@ resource "azurerm_cdn_frontdoor_origin_group" "my_origin_group" {
 
   health_probe {
     path                = "/"
-    protocol            = "Http"
+    protocol            = "Https" # Probe via HTTPS is fine
     interval_in_seconds = 100
   }
 }
@@ -49,7 +49,8 @@ resource "azurerm_cdn_frontdoor_origin" "my_app_origin" {
   priority   = 1
   weight     = 1000
 
-  // Pas de vérification du certificat backend (car IP)
+  # FIX: Disable certificate check so Front Door accepts the FortiGate's self-signed cert
+  # This allows "SSL Mode Full" without needing a real cert on the FortiGate immediately.
   certificate_name_check_enabled = false
 }
 
@@ -61,7 +62,7 @@ resource "azurerm_cdn_frontdoor_route" "my_route" {
 
   supported_protocols    = ["Http", "Https"]
   patterns_to_match      = ["/*"]
-  forwarding_protocol    = "MatchRequest"
+  forwarding_protocol    = "HttpsOnly" # Force HTTPS (SSL Mode Full)
   link_to_default_domain = true
   https_redirect_enabled = true
 }

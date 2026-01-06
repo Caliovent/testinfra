@@ -5,6 +5,8 @@ resource "azurerm_route_table" "internal" {
   resource_group_name = azurerm_resource_group.myterraformgroup.name
 }
 
+# REMOVED: azurerm_route.azure_fabric (168.63.129.16 is restricted)
+
 resource "azurerm_route" "default" {
   name                   = "default"
   resource_group_name    = azurerm_resource_group.myterraformgroup.name

@@ -1,6 +1,6 @@
 // Resource Group
 resource "azurerm_resource_group" "myterraformgroup" {
-  name     = "vschmitt-terraform-single-fgt"
+  name     = "vschmitt-terraform-rg"
   location = var.location
 
   tags = {
