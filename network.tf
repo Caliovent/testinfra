@@ -61,8 +61,8 @@ resource "azurerm_lb_rule" "lbnatrule" {
   loadbalancer_id                = azurerm_lb.elb.id
   name                           = "LBRule-HTTPS"
   protocol                       = "Tcp"
-  frontend_port                  = 80
-  backend_port                   = 80
+  frontend_port                  = 443
+  backend_port                   = 443
   frontend_ip_configuration_name = "LoadBalancerFrontEnd"
   probe_id                       = azurerm_lb_probe.elb_probe.id
   backend_address_pool_ids       = [azurerm_lb_backend_address_pool.elb_backend.id]
