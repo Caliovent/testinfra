@@ -20,7 +20,6 @@ resource "azurerm_cdn_frontdoor_endpoint" "my_endpoint" {
   name                     = local.front_door_endpoint_name
   cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.my_front_door.id
 }
-
 resource "azurerm_cdn_frontdoor_origin_group" "my_origin_group" {
   name                     = local.front_door_origin_group_name
   cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.my_front_door.id
@@ -33,7 +32,7 @@ resource "azurerm_cdn_frontdoor_origin_group" "my_origin_group" {
 
   health_probe {
     path                = "/"
-    protocol            = "Https" # Probe via HTTPS (since backend has self-signed cert now)
+    protocol            = "Http" # Probe via HTTP to avoid SSL errors
     interval_in_seconds = 100
   }
 }
@@ -49,7 +48,7 @@ resource "azurerm_cdn_frontdoor_origin" "my_app_origin" {
   priority   = 1
   weight     = 1000
 
-  # FIX: Disable certificate check so Front Door accepts the self-signed cert (from Nginx or FGT)
+  # N/A for HTTP, but kept for config consistency
   certificate_name_check_enabled = false
 }
 
@@ -61,7 +60,7 @@ resource "azurerm_cdn_frontdoor_route" "my_route" {
 
   supported_protocols    = ["Http", "Https"]
   patterns_to_match      = ["/*"]
-  forwarding_protocol    = "HttpsOnly" # Talk HTTPS to backend
+  forwarding_protocol    = "HttpOnly" # Force HTTP to backend to bypass SSL validation
   link_to_default_domain = true
   https_redirect_enabled = true
 }
