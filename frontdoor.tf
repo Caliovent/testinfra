@@ -42,11 +42,12 @@ resource "azurerm_cdn_frontdoor_origin" "my_app_origin" {
   cdn_frontdoor_origin_group_id = azurerm_cdn_frontdoor_origin_group.my_origin_group.id
   enabled                       = true
 
-  host_name  = azurerm_public_ip.elb_pip.ip_address
-  http_port  = 80
-  https_port = 443
-  priority   = 1
-  weight     = 1000
+  host_name          = azurerm_public_ip.elb_pip.ip_address
+  origin_host_header = "Backend-Web-Server.e14mag0lr13eplu30y0rxqtsib.xx.internal.cloudapp.net"
+  http_port          = 80
+  https_port         = 443
+  priority           = 1
+  weight             = 1000
 
   # N/A for HTTP, but kept for config consistency
   certificate_name_check_enabled = false
