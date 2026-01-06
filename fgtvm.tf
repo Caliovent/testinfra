@@ -46,12 +46,14 @@ resource "azurerm_virtual_machine" "fgtvm" {
     admin_username = var.adminusername
     admin_password = var.adminpassword
 
-    // Inject ELB Public IP for VIP configuration
+    // Inject Variables for VIP Configuration
     custom_data = templatefile("${var.bootstrap-fgtvm}", {
       type         = var.license_type
       license_file = count.index == 0 ? var.license : var.license2
       hostname     = count.index == 0 ? "FGT-A" : "FGT-B"
       vip_ip       = azurerm_public_ip.elb_pip.ip_address
+      # NEW: Inject the actual Backend IP to avoid mismatch
+      backend_ip = azurerm_network_interface.backend_nic.private_ip_address
     })
   }
 
