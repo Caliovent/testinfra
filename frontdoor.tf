@@ -31,7 +31,7 @@ resource "azurerm_cdn_frontdoor_origin_group" "my_origin_group" {
   }
 
   health_probe {
-    path                = "/"
+    path                = "/health"
     protocol            = "Http" # Probe via HTTP to avoid SSL errors
     interval_in_seconds = 100
   }
