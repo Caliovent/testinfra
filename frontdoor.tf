@@ -31,7 +31,7 @@ resource "azurerm_cdn_frontdoor_origin_group" "my_origin_group" {
   }
 
   health_probe {
-    path                = "/"
+    path                = "/health"
     protocol            = "Http" # Probe via HTTP to avoid SSL errors
     interval_in_seconds = 100
   }
@@ -61,7 +61,7 @@ resource "azurerm_cdn_frontdoor_route" "my_route" {
 
   supported_protocols    = ["Http", "Https"]
   patterns_to_match      = ["/*"]
-  forwarding_protocol    = "HttpOnly" # Force HTTP to backend to bypass SSL validation
+  forwarding_protocol    = "HttpsOnly" # Enforce HTTPS for end-to-end SSL
   link_to_default_domain = true
   https_redirect_enabled = true
 }
