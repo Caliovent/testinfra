@@ -66,6 +66,10 @@ resource "azurerm_lb_rule" "lbnatrule" {
   frontend_ip_configuration_name = "LoadBalancerFrontEnd"
   probe_id                       = azurerm_lb_probe.elb_probe.id
   backend_address_pool_ids       = [azurerm_lb_backend_address_pool.elb_backend.id]
+
+  # CRITICAL CHANGE: Enable Floating IP so packets arrive with Destination IP = Public IP
+  # This allows the FortiGate VIP configured with 'extip <Public_IP>' to match the traffic.
+  enable_floating_ip = true
 }
 
 // --- NETWORK SECURITY GROUPS ---
@@ -120,17 +124,14 @@ resource "azurerm_network_security_group" "privatenetworknsg" {
 
 // --- INTERFACES (Count = 2 for FGT A and FGT B) ---
 
-// Port 1 (Public / Management)
-resource "azurerm_public_ip" "FGT-VIP-PIP" {
+// Public IPs for Management of each FGT
+resource "azurerm_public_ip" "fgt_mgmt_pip" {
   count               = 2
-  name                = "FGT-VIP-PIP"
+  name                = "FGT-${count.index + 1}-Mgmt-PIP"
   location            = var.location
   resource_group_name = azurerm_resource_group.myterraformgroup.name
-  sku                 = "Standard"
   allocation_method   = "Static"
-  tags = {
-    environment = "Terraform Single FortiGate"
-  }
+  sku                 = "Standard"
 }
 
 resource "azurerm_network_interface" "fgtport1" {
@@ -148,23 +149,6 @@ resource "azurerm_network_interface" "fgtport1" {
     // We need a public IP for management of each unit independently
     public_ip_address_id = azurerm_public_ip.fgt_mgmt_pip[count.index].id
   }
-
-  ip_configuration {
-    name                          = "ipconfig2"
-    subnet_id                     = azurerm_subnet.publicsubnet.id
-    private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.FGT-VIP-PIP[count.index].id
-  }
-}
-
-// Public IPs for Management of each FGT
-resource "azurerm_public_ip" "fgt_mgmt_pip" {
-  count               = 2
-  name                = "FGT-${count.index + 1}-Mgmt-PIP"
-  location            = var.location
-  resource_group_name = azurerm_resource_group.myterraformgroup.name
-  allocation_method   = "Static"
-  sku                 = "Standard"
 }
 
 // Port 2 (Private / Internal)

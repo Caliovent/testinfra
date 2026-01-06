@@ -46,12 +46,12 @@ resource "azurerm_virtual_machine" "fgtvm" {
     admin_username = var.adminusername
     admin_password = var.adminpassword
 
-    // Inject License A for Index 0, License B for Index 1
+    // Inject ELB Public IP for VIP configuration
     custom_data = templatefile("${var.bootstrap-fgtvm}", {
       type         = var.license_type
       license_file = count.index == 0 ? var.license : var.license2
       hostname     = count.index == 0 ? "FGT-A" : "FGT-B"
-      vip_ip       = azurerm_public_ip.FGT-VIP-PIP[count.index].ip_address
+      vip_ip       = azurerm_public_ip.elb_pip.ip_address
     })
   }
 
