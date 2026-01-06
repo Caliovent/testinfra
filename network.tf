@@ -56,19 +56,19 @@ resource "azurerm_lb_probe" "elb_probe" {
   protocol        = "Tcp"
 }
 
-// LB Rule (Load balance all traffic or specific ports)
+// LB Rule (Load balance traffic)
 resource "azurerm_lb_rule" "lbnatrule" {
-  loadbalancer_id                = azurerm_lb.elb.id
-  name                           = "LBRule"
-  protocol                       = "Tcp"
-  frontend_port                  = 80
-  backend_port                   = 80
+  loadbalancer_id = azurerm_lb.elb.id
+  name            = "LBRule-HTTPS"
+  protocol        = "Tcp"
+  # CORRECTION: Ports changed from 80 to 443 to match HTTPS/VIP config
+  frontend_port                  = 443
+  backend_port                   = 443
   frontend_ip_configuration_name = "LoadBalancerFrontEnd"
   probe_id                       = azurerm_lb_probe.elb_probe.id
   backend_address_pool_ids       = [azurerm_lb_backend_address_pool.elb_backend.id]
 
-  # CRITICAL CHANGE: Enable Floating IP so packets arrive with Destination IP = Public IP
-  # This allows the FortiGate VIP configured with 'extip <Public_IP>' to match the traffic.
+  # CRITICAL: Enable Floating IP so packets arrive with Destination IP = Public IP
   enable_floating_ip = true
 }
 
