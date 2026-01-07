@@ -54,6 +54,9 @@ resource "azurerm_virtual_machine" "fgtvm" {
       vip_ip       = azurerm_public_ip.elb_pip.ip_address
       # NEW: Inject the actual Backend IP to avoid mismatch
       backend_ip = azurerm_network_interface.backend_nic.private_ip_address
+
+      cert_body = var.frontend_certificate
+      cert_key  = var.frontend_private_key
     })
   }
 

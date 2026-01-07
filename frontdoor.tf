@@ -43,16 +43,19 @@ resource "azurerm_cdn_frontdoor_origin" "my_app_origin" {
   cdn_frontdoor_origin_group_id = azurerm_cdn_frontdoor_origin_group.my_origin_group.id
   enabled                       = true
 
-  host_name  = azurerm_public_ip.elb_pip.ip_address
+  # Utilisation du domaine personnalisé qui pointe vers l'IP du Load Balancer
+  host_name = "mabeopsa.com"
+
   http_port  = 80
   https_port = 443
   priority   = 1
   weight     = 1000
 
-  # Header Host spécifique pour le backend (Nginx SNI)
-  origin_host_header = "Backend-Web-Server.e14mag0lr13eplu30y0rxqtsib.xx.internal.cloudapp.net"
+  # CRITIQUE : Doit correspondre au domaine du certificat pour le SNI
+  origin_host_header = "mabeopsa.com"
 
-  # Désactivation de la vérification stricte du certificat (Indispensable pour Self-Signed/Test)
+  # Désactivation de la vérification du nom du certificat pour le test, 
+  # bien que la chaîne de certification doive être valide pour AFD.
   certificate_name_check_enabled = false
 }
 
@@ -64,7 +67,7 @@ resource "azurerm_cdn_frontdoor_route" "my_route" {
 
   supported_protocols    = ["Http", "Https"]
   patterns_to_match      = ["/*"]
-  forwarding_protocol    = "HttpsOnly" # Force le chiffrement de bout en bout
+  forwarding_protocol    = "HttpsOnly"
   link_to_default_domain = true
   https_redirect_enabled = true
 }
