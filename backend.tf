@@ -1,6 +1,12 @@
-# Configuration Cloud-Init pour installer Nginx et forcer TLS 1.2
+# Configuration Cloud-Init
 locals {
-  custom_data_script = templatefile("${path.module}/webserver.conf", {})
+  # On injecte les secrets et config dans le template
+  custom_data_script = templatefile("${path.module}/webserver.conf", {
+    domain_name    = var.domain_name
+    email          = var.email
+    godaddy_key    = var.godaddy_key
+    godaddy_secret = var.godaddy_secret
+  })
 }
 
 resource "azurerm_network_interface" "backend_nic" {

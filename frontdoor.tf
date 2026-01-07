@@ -33,7 +33,7 @@ resource "azurerm_cdn_frontdoor_origin_group" "my_origin_group" {
 
   health_probe {
     path                = "/"
-    protocol            = "Https" # Le backend écoute en 443
+    protocol            = "Https"
     interval_in_seconds = 100
   }
 }
@@ -43,18 +43,16 @@ resource "azurerm_cdn_frontdoor_origin" "my_app_origin" {
   cdn_frontdoor_origin_group_id = azurerm_cdn_frontdoor_origin_group.my_origin_group.id
   enabled                       = true
 
-  # Cible l'IP Publique du Load Balancer
   host_name  = azurerm_public_ip.elb_pip.ip_address
   http_port  = 80
   https_port = 443
   priority   = 1
   weight     = 1000
 
-  # Header spécifique requis par votre application backend
+  # Header Host spécifique pour le backend (Nginx SNI)
   origin_host_header = "Backend-Web-Server.e14mag0lr13eplu30y0rxqtsib.xx.internal.cloudapp.net"
 
-  # Désactivation de la vérification stricte du nom du certificat
-  # Nécessaire car le FortiGate présente un certificat "Fortinet_Factory" ou Self-Signed
+  # Désactivation de la vérification stricte du certificat (Indispensable pour Self-Signed/Test)
   certificate_name_check_enabled = false
 }
 
@@ -66,7 +64,7 @@ resource "azurerm_cdn_frontdoor_route" "my_route" {
 
   supported_protocols    = ["Http", "Https"]
   patterns_to_match      = ["/*"]
-  forwarding_protocol    = "HttpsOnly" # Force le HTTPS vers le FortiGate (SSL Mode Full)
+  forwarding_protocol    = "HttpsOnly" # Force le chiffrement de bout en bout
   link_to_default_domain = true
   https_redirect_enabled = true
 }

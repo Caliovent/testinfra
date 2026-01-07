@@ -106,3 +106,29 @@ variable "backend_ssl_crt" {
   type      = string
   sensitive = true
 }
+
+variable "domain_name" {
+  type        = string
+  description = "Votre nom de domaine (ex: mondomaine.com)"
+  default     = "exemple.com"
+}
+
+variable "email" {
+  type        = string
+  description = "Email pour l'enregistrement Let's Encrypt"
+  default     = "admin@exemple.com"
+}
+
+variable "godaddy_key" {
+  type        = string
+  description = "Clé API GoDaddy (Production)"
+  sensitive   = true
+  default     = "" # À remplir ou passer via -var
+}
+
+variable "godaddy_secret" {
+  type        = string
+  description = "Secret API GoDaddy (Production)"
+  sensitive   = true
+  default     = "" # À remplir ou passer via -var
+}
