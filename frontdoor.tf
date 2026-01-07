@@ -43,20 +43,34 @@ resource "azurerm_cdn_frontdoor_origin" "my_app_origin" {
   cdn_frontdoor_origin_group_id = azurerm_cdn_frontdoor_origin_group.my_origin_group.id
   enabled                       = true
 
-  # Utilisation du domaine personnalisé qui pointe vers l'IP du Load Balancer
-  host_name = "mabeopsa.com"
+  # CORRECTION : L'origine doit pointer vers l'IP du Load Balancer.
+  # Si on met le domaine ici alors que le DNS pointe déjà vers Front Door, on crée une boucle infinie.
+  host_name = azurerm_public_ip.elb_pip.ip_address
 
   http_port  = 80
   https_port = 443
   priority   = 1
   weight     = 1000
 
-  # CRITIQUE : Doit correspondre au domaine du certificat pour le SNI
-  origin_host_header = "mabeopsa.com"
+  # Le Host Header envoyé au FortiGate doit être votre domaine pour le SNI
+  origin_host_header = var.domain_name
 
-  # Désactivation de la vérification du nom du certificat pour le test, 
-  # bien que la chaîne de certification doive être valide pour AFD.
+  # Désactivation de la vérification du nom car le FortiGate présente le certificat mabeopsa.com
+  # mais AFD contacte l'IP du LB.
   certificate_name_check_enabled = false
+}
+
+# Ajout du domaine personnalisé
+resource "azurerm_cdn_frontdoor_custom_domain" "my_custom_domain" {
+  name                     = "mabeopsa-com"
+  cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.my_front_door.id
+  host_name                = var.domain_name
+
+  tls {
+    certificate_type = "ManagedCertificate" # Azure gère le cert AFD. 
+    # Note : Vous pouvez aussi utiliser "CustomerCertificate" avec Key Vault.
+    minimum_tls_version = "TLS12"
+  }
 }
 
 resource "azurerm_cdn_frontdoor_route" "my_route" {
@@ -70,4 +84,7 @@ resource "azurerm_cdn_frontdoor_route" "my_route" {
   forwarding_protocol    = "HttpsOnly"
   link_to_default_domain = true
   https_redirect_enabled = true
+
+  # Association de la route au domaine personnalisé
+  cdn_frontdoor_custom_domain_ids = [azurerm_cdn_frontdoor_custom_domain.my_custom_domain.id]
 }

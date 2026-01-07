@@ -1,10 +1,10 @@
 // Resource Group
 resource "azurerm_resource_group" "myterraformgroup" {
-  name     = "vschmitt-terraform-rg"
+  name     = "vschmitt-terraform-rg-v2" # Incrémenté à v2
   location = var.location
 
   tags = {
-    environment = "Terraform Single FortiGate"
+    environment = "Terraform Dual FortiGate - Fresh Start"
     owner       = "vschmitt"
   }
 }

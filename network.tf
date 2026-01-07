@@ -20,15 +20,14 @@ resource "azurerm_subnet" "privatesubnet" {
   address_prefixes     = [var.privatecidr]
 }
 
-// --- AZURE LOAD BALANCER (Frontend for Front Door) ---
+// --- AZURE LOAD BALANCER ---
 
-// Public IP for the ELB
 resource "azurerm_public_ip" "elb_pip" {
   name                = "ELB-PublicIP"
   location            = var.location
   resource_group_name = azurerm_resource_group.myterraformgroup.name
   allocation_method   = "Static"
-  sku                 = "Standard" # Required for Front Door backend compatibility
+  sku                 = "Standard"
 }
 
 resource "azurerm_lb" "elb" {
@@ -48,7 +47,6 @@ resource "azurerm_lb_backend_address_pool" "elb_backend" {
   name            = "FortiGateBackendPool"
 }
 
-// Health Probe (Critical for preventing drops)
 resource "azurerm_lb_probe" "elb_probe" {
   loadbalancer_id = azurerm_lb.elb.id
   name            = "tcp-probe-8008"
@@ -56,22 +54,30 @@ resource "azurerm_lb_probe" "elb_probe" {
   protocol        = "Tcp"
 }
 
-// LB Rule (Load balance all traffic or specific ports)
-resource "azurerm_lb_rule" "lbnatrule" {
-  loadbalancer_id = azurerm_lb.elb.id
-  name            = "LBRule-HTTPS"
-  protocol        = "Tcp"
-
-  # CORRECTION: Ports MUST be 443 for HTTPS traffic
-  frontend_port = 443
-  backend_port  = 443
-
+# RÈGLE 1 : HTTPS (Port 443)
+resource "azurerm_lb_rule" "lbnatrule_https" {
+  loadbalancer_id                = azurerm_lb.elb.id
+  name                           = "LBRule-HTTPS"
+  protocol                       = "Tcp"
+  frontend_port                  = 443
+  backend_port                   = 443
   frontend_ip_configuration_name = "LoadBalancerFrontEnd"
   probe_id                       = azurerm_lb_probe.elb_probe.id
   backend_address_pool_ids       = [azurerm_lb_backend_address_pool.elb_backend.id]
+  enable_floating_ip             = true
+}
 
-  # CRITICAL: Enable Floating IP so packets arrive with Destination IP = Public IP
-  enable_floating_ip = true
+# RÈGLE 2 : HTTP (Port 80) - NÉCESSAIRE POUR LA SONDE AFD
+resource "azurerm_lb_rule" "lbnatrule_http" {
+  loadbalancer_id                = azurerm_lb.elb.id
+  name                           = "LBRule-HTTP"
+  protocol                       = "Tcp"
+  frontend_port                  = 80
+  backend_port                   = 80
+  frontend_ip_configuration_name = "LoadBalancerFrontEnd"
+  probe_id                       = azurerm_lb_probe.elb_probe.id
+  backend_address_pool_ids       = [azurerm_lb_backend_address_pool.elb_backend.id]
+  enable_floating_ip             = true
 }
 
 // --- NETWORK SECURITY GROUPS ---
@@ -81,10 +87,23 @@ resource "azurerm_network_security_group" "publicnetworknsg" {
   location            = var.location
   resource_group_name = azurerm_resource_group.myterraformgroup.name
 
-  # NEW RULE: Allow Azure Load Balancer Probes
+  # Priorité 100 : Autoriser explicitement les sondes de Front Door
   security_rule {
-    name                       = "AllowAzureLoadBalancer"
-    priority                   = 150
+    name                       = "AllowFrontDoorInbound"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_ranges    = ["80", "443"]
+    source_address_prefix      = "AzureFrontDoor.Backend"
+    destination_address_prefix = "*"
+  }
+
+  # Priorité 110 : Autoriser les sondes du Load Balancer (Port 8008 et autres)
+  security_rule {
+    name                       = "AllowAzureLoadBalancerInbound"
+    priority                   = 110
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "*"
@@ -94,21 +113,10 @@ resource "azurerm_network_security_group" "publicnetworknsg" {
     destination_address_prefix = "*"
   }
 
+  # Priorité 120 : Management (SSH, GUI)
   security_rule {
-    name                       = "AllowFrontDoor"
-    priority                   = 100
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "*"
-    source_address_prefix      = "AzureFrontDoor.Backend"
-    destination_address_prefix = "*"
-  }
-
-  security_rule {
-    name                       = "AllowManagement"
-    priority                   = 200
+    name                       = "AllowAdminManagement"
+    priority                   = 120
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
@@ -125,29 +133,19 @@ resource "azurerm_network_security_group" "privatenetworknsg" {
   resource_group_name = azurerm_resource_group.myterraformgroup.name
 
   security_rule {
-    name                       = "AllowAllInbound"
-    priority                   = 1001
+    name                       = "AllowAllInternal"
+    priority                   = 100
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "*"
     source_port_range          = "*"
     destination_port_range     = "*"
-    source_address_prefix      = "*"
+    source_address_prefix      = "10.1.0.0/16"
     destination_address_prefix = "*"
   }
 }
 
-// --- INTERFACES (Count = 2 for FGT A and FGT B) ---
-
-// Public IPs for Management of each FGT
-resource "azurerm_public_ip" "fgt_mgmt_pip" {
-  count               = 2
-  name                = "FGT-${count.index + 1}-Mgmt-PIP"
-  location            = var.location
-  resource_group_name = azurerm_resource_group.myterraformgroup.name
-  allocation_method   = "Static"
-  sku                 = "Standard"
-}
+// --- INTERFACES & ASSOCIATIONS ---
 
 resource "azurerm_network_interface" "fgtport1" {
   count               = 2
@@ -160,13 +158,10 @@ resource "azurerm_network_interface" "fgtport1" {
     subnet_id                     = azurerm_subnet.publicsubnet.id
     private_ip_address_allocation = "Dynamic"
     primary                       = true
-
-    // We need a public IP for management of each unit independently
-    public_ip_address_id = azurerm_public_ip.fgt_mgmt_pip[count.index].id
+    public_ip_address_id          = azurerm_public_ip.fgt_mgmt_pip[count.index].id
   }
 }
 
-// Port 2 (Private / Internal)
 resource "azurerm_network_interface" "fgtport2" {
   count                          = 2
   name                           = "fgt-instance-${count.index + 1}-port2"
@@ -174,17 +169,13 @@ resource "azurerm_network_interface" "fgtport2" {
   resource_group_name            = azurerm_resource_group.myterraformgroup.name
   ip_forwarding_enabled          = true
   accelerated_networking_enabled = true
-
-
   ip_configuration {
     name                          = "ipconfig1"
     subnet_id                     = azurerm_subnet.privatesubnet.id
     private_ip_address_allocation = "Dynamic"
-
   }
 }
 
-// Connect NSGs
 resource "azurerm_network_interface_security_group_association" "port1nsg" {
   count                     = 2
   network_interface_id      = azurerm_network_interface.fgtport1[count.index].id
@@ -197,9 +188,6 @@ resource "azurerm_network_interface_security_group_association" "port2nsg" {
   network_security_group_id = azurerm_network_security_group.privatenetworknsg.id
 }
 
-// Associate Port 1 to the Load Balancer Backend Pool
-// Note: In some designs, Port 1 is Mgmt only and traffic hits Port 2 via Internal LB. 
-// But here we adhere to "FrontDoor -> ELB -> FGT", so ELB hits the External Interface.
 resource "azurerm_network_interface_backend_address_pool_association" "fgt_to_elb" {
   count                   = 2
   network_interface_id    = azurerm_network_interface.fgtport1[count.index].id
@@ -207,14 +195,13 @@ resource "azurerm_network_interface_backend_address_pool_association" "fgt_to_el
   backend_address_pool_id = azurerm_lb_backend_address_pool.elb_backend.id
 }
 
-// --- AZURE INTERNAL LOAD BALANCER (For Return Traffic) ---
+// --- INTERNAL LOAD BALANCER ---
 
 resource "azurerm_lb" "ilb" {
   name                = "Internal-LB"
   location            = var.location
   resource_group_name = azurerm_resource_group.myterraformgroup.name
   sku                 = "Standard"
-
   frontend_ip_configuration {
     name                          = "LoadBalancerFrontEnd"
     subnet_id                     = azurerm_subnet.privatesubnet.id
@@ -250,4 +237,13 @@ resource "azurerm_network_interface_backend_address_pool_association" "fgt_to_il
   network_interface_id    = azurerm_network_interface.fgtport2[count.index].id
   ip_configuration_name   = "ipconfig1"
   backend_address_pool_id = azurerm_lb_backend_address_pool.ilb_backend.id
+}
+
+resource "azurerm_public_ip" "fgt_mgmt_pip" {
+  count               = 2
+  name                = "FGT-${count.index + 1}-Mgmt-PIP"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.myterraformgroup.name
+  allocation_method   = "Static"
+  sku                 = "Standard"
 }
