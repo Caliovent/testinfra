@@ -1,11 +1,8 @@
-# Configuration Cloud-Init
 locals {
-  # On injecte les secrets et config dans le template
   custom_data_script = templatefile("${path.module}/webserver.conf", {
-    domain_name    = var.domain_name
-    email          = var.email
-    godaddy_key    = var.godaddy_key
-    godaddy_secret = var.godaddy_secret
+    domain_name          = "mabeopsa.com" # Or use a variable if you prefer
+    frontend_certificate = var.frontend_certificate
+    frontend_private_key = var.frontend_private_key
   })
 }
 

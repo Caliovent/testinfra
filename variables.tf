@@ -107,28 +107,43 @@ variable "backend_ssl_crt" {
   sensitive = true
 }
 
+// --- CERTIFICATS & GODADDY ---
+variable "frontend_certificate" {
+  type        = string
+  description = "Contenu du certificat public (PEM format)"
+  sensitive   = true
+  default     = ""
+}
+
+variable "frontend_private_key" {
+  type        = string
+  description = "Contenu de la clé privée (PEM format)"
+  sensitive   = true
+  default     = ""
+}
+
 variable "domain_name" {
   type        = string
-  description = "Votre nom de domaine (ex: mondomaine.com)"
-  default     = "exemple.com"
+  description = "Votre nom de domaine"
+  default     = "mabeopsa.com"
 }
 
 variable "email" {
   type        = string
   description = "Email pour l'enregistrement Let's Encrypt"
-  default     = "admin@exemple.com"
+  default     = "admin@mabeopsa.com"
 }
 
 variable "godaddy_key" {
   type        = string
-  description = "Clé API GoDaddy (Production)"
+  description = "Clé API GoDaddy"
   sensitive   = true
-  default     = "" # À remplir ou passer via -var
+  default     = ""
 }
 
 variable "godaddy_secret" {
   type        = string
-  description = "Secret API GoDaddy (Production)"
+  description = "Secret API GoDaddy"
   sensitive   = true
-  default     = "" # À remplir ou passer via -var
+  default     = ""
 }
