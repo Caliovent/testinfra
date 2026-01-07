@@ -21,7 +21,6 @@ resource "azurerm_subnet" "privatesubnet" {
 }
 
 // --- AZURE LOAD BALANCER ---
-
 resource "azurerm_public_ip" "elb_pip" {
   name                = "ELB-PublicIP"
   location            = var.location
@@ -35,7 +34,6 @@ resource "azurerm_lb" "elb" {
   location            = var.location
   resource_group_name = azurerm_resource_group.myterraformgroup.name
   sku                 = "Standard"
-
   frontend_ip_configuration {
     name                 = "LoadBalancerFrontEnd"
     public_ip_address_id = azurerm_public_ip.elb_pip.id
@@ -54,7 +52,7 @@ resource "azurerm_lb_probe" "elb_probe" {
   protocol        = "Tcp"
 }
 
-# RÈGLE 1 : HTTPS (Port 443)
+# Règle HTTPS
 resource "azurerm_lb_rule" "lbnatrule_https" {
   loadbalancer_id                = azurerm_lb.elb.id
   name                           = "LBRule-HTTPS"
@@ -67,7 +65,7 @@ resource "azurerm_lb_rule" "lbnatrule_https" {
   enable_floating_ip             = true
 }
 
-# RÈGLE 2 : HTTP (Port 80) - NÉCESSAIRE POUR LA SONDE AFD
+# CORRECTIF : Règle HTTP (Indispensable pour la sonde Front Door)
 resource "azurerm_lb_rule" "lbnatrule_http" {
   loadbalancer_id                = azurerm_lb.elb.id
   name                           = "LBRule-HTTP"
@@ -80,16 +78,14 @@ resource "azurerm_lb_rule" "lbnatrule_http" {
   enable_floating_ip             = true
 }
 
-// --- NETWORK SECURITY GROUPS ---
-
+# NSG : Autoriser explicitement AFD sur le port 80 et 443
 resource "azurerm_network_security_group" "publicnetworknsg" {
   name                = "PublicNetworkSecurityGroup"
   location            = var.location
   resource_group_name = azurerm_resource_group.myterraformgroup.name
 
-  # Priorité 100 : Autoriser explicitement les sondes de Front Door
   security_rule {
-    name                       = "AllowFrontDoorInbound"
+    name                       = "AllowFrontDoor"
     priority                   = 100
     direction                  = "Inbound"
     access                     = "Allow"
@@ -100,9 +96,8 @@ resource "azurerm_network_security_group" "publicnetworknsg" {
     destination_address_prefix = "*"
   }
 
-  # Priorité 110 : Autoriser les sondes du Load Balancer (Port 8008 et autres)
   security_rule {
-    name                       = "AllowAzureLoadBalancerInbound"
+    name                       = "AllowAzureLB"
     priority                   = 110
     direction                  = "Inbound"
     access                     = "Allow"
@@ -112,6 +107,7 @@ resource "azurerm_network_security_group" "publicnetworknsg" {
     source_address_prefix      = "AzureLoadBalancer"
     destination_address_prefix = "*"
   }
+
 
   # Priorité 120 : Management (SSH, GUI)
   security_rule {

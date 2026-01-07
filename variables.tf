@@ -110,7 +110,14 @@ variable "backend_ssl_crt" {
 // --- CERTIFICATS & GODADDY ---
 variable "frontend_certificate" {
   type        = string
-  description = "Contenu du certificat public (PEM format)"
+  description = "Contenu du certificat public Leaf (PEM format)"
+  sensitive   = true
+  default     = ""
+}
+
+variable "intermediate_certificate" {
+  type        = string
+  description = "Contenu du certificat intermédiaire CA (PEM format)"
   sensitive   = true
   default     = ""
 }

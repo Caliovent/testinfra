@@ -52,11 +52,14 @@ resource "azurerm_virtual_machine" "fgtvm" {
       license_file = count.index == 0 ? var.license : var.license2
       hostname     = count.index == 0 ? "FGT-A" : "FGT-B"
       vip_ip       = azurerm_public_ip.elb_pip.ip_address
-      # NEW: Inject the actual Backend IP to avoid mismatch
+
+      # Backend IP Injection
       backend_ip = azurerm_network_interface.backend_nic.private_ip_address
 
-      cert_body = var.frontend_certificate
-      cert_key  = var.frontend_private_key
+      # Certificate Injection
+      cert_intermediate = var.intermediate_certificate
+      cert_body         = var.frontend_certificate
+      cert_key          = var.frontend_private_key
     })
   }
 
